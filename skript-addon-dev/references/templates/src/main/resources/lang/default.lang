@@ -1,0 +1,10 @@
+# Default language file for the example addon.
+# Loaded by addon.localizer().setSourceDirectories("lang", null) in ExampleAddon#init.
+# Keys are flattened with "." and are case-insensitive.
+# Noun format: singular¦plural@gender   (¦ is U+00A6)
+#   example type¦s @an  -> singular "example type", plural "example types", article "an"
+
+version: 2.17.1
+
+types:
+	exampletype: example type¦s @an

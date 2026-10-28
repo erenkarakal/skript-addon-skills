@@ -1,0 +1,100 @@
+# Test scripts for SkriptLang/skript-test-action.
+#
+# They are copied into Skript's src/test/skript/tests/custom/ and run with
+# ./gradlew quickTest. Test mode replaces normal scripts, so the addon has to be
+# installed as a plugin for this file to parse at all.
+#
+# There are no players in test mode. Player-dependent syntax is covered by
+# empty-list evaluation and parse-only tests.
+
+# `parse` as a structure (test runner only) parses its `code:` section as a
+# top-level structure and stores the parse logs in `results`. Empty results mean
+# the event/structure parsed without errors.
+parse:
+	results: {ExampleAddon::parse::event::*}
+	code:
+		on example join:
+			stop
+
+parse:
+	results: {ExampleAddon::parse::structure::*}
+	code:
+		example section:
+			stop
+
+test "example addon - event and structure parse":
+	assert {ExampleAddon::parse::event::*} is not set with "event did not parse"
+	assert {ExampleAddon::parse::structure::*} is not set with "structure did not parse"
+	clear {ExampleAddon::parse::event::*}
+	clear {ExampleAddon::parse::structure::*}
+
+test "example addon - custom type round-trips":
+	set {_type} to example:hello
+	assert {_type} is set with "custom type literal did not parse"
+	assert "%{_type}%" is "hello" with "custom type did not stringify"
+	assert {_type} is "hello" with "custom type comparator did not match"
+	assert {_type} is not "goodbye" with "custom type comparator matched the wrong value"
+
+test "example addon - expression parses with an empty player list":
+	set {_food::*} to example food level of (random element out of all players)
+	assert size of {_food::*} is 0 with "expression returned values for an empty player list"
+
+test "example addon - expression rejects a non-player":
+	parse:
+		set {_level} to example food level of 42
+		assert last parse logs is set with "expected a type error for a number passed as a player"
+
+test "example addon - property expression parses in both forms":
+	set {_names::*} to example nickname of all players
+	assert size of {_names::*} is 0 with "property form returned values for an empty player list"
+	set {_names::*} to all players' example nickname
+	assert size of {_names::*} is 0 with "possessive form returned values for an empty player list"
+
+# Only the explicit-target form is tested. The no-target form falls back to the
+# event's player, and the test event has none, so it cannot be parsed here.
+test "example addon - effect parses with a target":
+	example announce "test" to all players
+
+# `parse` does not run the body, so this checks the parse-time delay contract
+# without relying on the async continuation, which the test runner may not reach.
+test "example addon - async effect reports a delay":
+	parse:
+		example async "test"
+	assert unsafely last parse logs is not set with "async effect did not parse"
+	assert unsafely has delay before is true with "async effect did not set hasDelayBefore"
+
+test "example addon - async effect parses after a wait":
+	parse:
+		wait 1 tick
+		example async "after a wait"
+	assert unsafely last parse logs is not set with "async effect rejected delayed use"
+
+test "example addon - section expression runs its body":
+	set {_created} to a new example section:
+		example announce "inside the section" to all players
+	assert {_created} is set with "section expression did not produce a value"
+	assert "%{_created}%" is "example" with "section expression produced the wrong value"
+
+test "example addon - effect section runs as effect and section":
+	example section "plain"
+	example section "test":
+		set {_seen} to event-string
+	assert {_seen} is "test" with "effect section body did not run"
+
+test "example addon - property condition parses and evaluates":
+	parse:
+		if all players are example flying:
+			stop
+		if all players aren't example flying:
+			stop
+	assert last parse logs is not set with "condition did not parse"
+	assert all players are example flying to fail with "empty player list reported flying"
+
+test "example addon - function returns a single value":
+	assert example_slug("Hello, World!") is "hello-world" with "function returned the wrong text"
+
+test "example addon - function takes an optional argument":
+	set {_parts::*} to example_repeat("ab", 3)
+	assert size of {_parts::*} is 3 with "function ignored its optional argument"
+	set {_parts::*} to example_repeat("ab")
+	assert size of {_parts::*} is 1 with "function did not apply the optional argument default"

@@ -1,0 +1,13 @@
+name: ExampleAddon
+version: '@version@'
+main: com.example.exampleaddon.ExampleAddon
+api-version: '1.21.5'
+description: An example Skript addon.
+authors: [YourName]
+website: https://example.com
+
+# Hard dependency: Skript must load first, and the addon will not enable without it.
+depend: [Skript]
+
+# Optional: soft-depend on plugins whose API you use.
+# softdepend: [WorldGuard]
